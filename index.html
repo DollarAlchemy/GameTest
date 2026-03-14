@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <title>Grimoire — Fantasy Memory</title>
 <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
 <style>
@@ -35,6 +38,18 @@ html, body {
   color: var(--text);
   font-family: var(--body-font);
   overflow-x: hidden;
+  /* Prevent iOS rubber-band scroll fighting the game */
+  -webkit-overflow-scrolling: touch;
+  /* Prevent text selection on rapid taps */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Make all tappable things feel instant on mobile — no 300ms delay */
+button, .card, .diff-btn, .btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
 }
 
 body::before {
@@ -112,19 +127,23 @@ h1 {
 }
 
 /* ═══════════════════════════════════════════
-   HUD
+   HUD — stacks cleanly on narrow phones
 ═══════════════════════════════════════════ */
 #hud {
-  display: flex; gap: 12px;
+  display: flex; gap: 8px;
   align-items: center; justify-content: center;
-  flex-wrap: wrap; margin-bottom: 22px;
+  flex-wrap: wrap; margin-bottom: 18px;
+  width: 100%; padding: 0 8px;
 }
 
 .stat-box {
   background: rgba(14,10,30,0.85);
   border: 1px solid var(--gold-dim);
-  border-radius: 6px; padding: 7px 16px;
-  text-align: center; min-width: 82px;
+  border-radius: 6px;
+  /* Shrink gracefully on very small screens */
+  padding: clamp(5px, 1.5vw, 7px) clamp(10px, 3vw, 16px);
+  text-align: center;
+  min-width: clamp(62px, 18vw, 82px);
   box-shadow: inset 0 0 10px rgba(0,0,0,0.4);
 }
 .stat-label {
@@ -155,26 +174,27 @@ h1 {
 }
 
 /* ═══════════════════════════════════════════
-   CARD GRID
+   CARD GRID — fully fluid for all screen sizes
 ═══════════════════════════════════════════ */
 #grid {
   display: grid;
-  gap: 9px;
+  gap: clamp(5px, 1.8vw, 10px);
   margin-bottom: 24px;
   justify-content: center;
+  /* padding keeps grid from hitting screen edges on phones */
+  padding: 0 8px;
+  width: 100%;
 }
 
-/* ── Single Card ── */
+/* ── Single Card — fluid size ──
+   --card-size is set by JS based on cols + screen width.
+   Fallback is 78px for desktop. */
 .card {
-  width: 78px; height: 98px;
-  cursor: pointer; perspective: 700px;
-}
-@media (max-width: 520px) {
-  .card { width: 60px; height: 78px; }
-  #grid  { gap: 6px; }
-}
-@media (max-width: 380px) {
-  .card { width: 50px; height: 65px; }
+  width:  var(--card-size, 78px);
+  height: calc(var(--card-size, 78px) * 1.28);
+  perspective: 700px;
+  /* No hover cursor on touch devices */
+  cursor: pointer;
 }
 
 .card-inner {
@@ -226,10 +246,9 @@ h1 {
   background: var(--bg-card-rev);
   transform: rotateY(180deg);
   flex-direction: column; gap: 3px;
-  font-size: 34px;
+  /* Emoji scales with card — clamp keeps it readable on tiny/huge screens */
+  font-size: clamp(18px, calc(var(--card-size, 78px) * 0.44), 38px);
 }
-@media (max-width: 520px) { .card-front { font-size: 26px; } }
-@media (max-width: 380px) { .card-front { font-size: 22px; } }
 
 .card-label {
   font-family: var(--ui-font); font-size: 6.5px;
@@ -459,15 +478,35 @@ function shuffle(arr) {
 }
 
 /* ──────────────────────────────
+   Calculate fluid card size from cols + screen width
+   Called on build and on window resize
+────────────────────────────── */
+function calcCardSize(cols) {
+  const gap     = Math.max(5, Math.min(10, window.innerWidth * 0.018));
+  const padding = 32; // total side padding
+  const maxSize = 78; // desktop cap
+  const size    = Math.min(maxSize, Math.floor((window.innerWidth - padding - gap * (cols - 1)) / cols));
+  // Minimum tap target: 44px (Apple HIG recommendation)
+  return Math.max(44, size);
+}
+
+/* ──────────────────────────────
    Build / reset a game
 ────────────────────────────── */
 function buildGame() {
+  const isMobile = window.innerWidth < 600;
   const cfg = DIFFS[S.diff];
+
+  // On mobile, cap columns so cards stay tappable
+  let cols = cfg.cols;
+  if (isMobile && cols > 4) cols = 4;
+
   clearInterval(S.timerId);
   Object.assign(S, {
     cards: [], flipped: [], moves: 0, matches: 0,
     totalPairs: cfg.pairs, locked: false,
     started: false, elapsed: 0, timerId: null,
+    cols, // store resolved cols
   });
 
   // Pick pairs and duplicate them
@@ -476,7 +515,11 @@ function buildGame() {
     ...c, id: i, matched: false, flipped: false,
   })));
 
-  gridEl.style.gridTemplateColumns = `repeat(${cfg.cols}, auto)`;
+  // Set card size as CSS variable on the grid
+  const cardSize = calcCardSize(cols);
+  gridEl.style.setProperty('--card-size', cardSize + 'px');
+  gridEl.style.gridTemplateColumns = `repeat(${cols}, var(--card-size, ${cardSize}px))`;
+
   renderGrid();
   updateHUD();
 }
@@ -500,7 +543,19 @@ function renderGrid() {
           <span class="card-label">${card.label}</span>
         </div>
       </div>`;
+
+    // Use touchend for iOS (faster, no 300ms delay)
+    // Use click as fallback for desktop
+    let touchMoved = false;
+    el.addEventListener('touchstart', () => { touchMoved = false; }, { passive: true });
+    el.addEventListener('touchmove',  () => { touchMoved = true;  }, { passive: true });
+    el.addEventListener('touchend', (e) => {
+      if (touchMoved) return;       // ignore swipes
+      e.preventDefault();           // prevent ghost click firing after
+      onFlip(idx);
+    });
     el.addEventListener('click', () => onFlip(idx));
+
     gridEl.appendChild(el);
   });
 }
@@ -675,6 +730,14 @@ document.getElementById('resetBtn').addEventListener('click', newGame);
 
 // ── Boot ──
 buildGame();
+
+// Recalculate card sizes if phone rotates or window resizes
+window.addEventListener('resize', () => {
+  if (!S.cols) return;
+  const cardSize = calcCardSize(S.cols);
+  gridEl.style.setProperty('--card-size', cardSize + 'px');
+  gridEl.style.gridTemplateColumns = `repeat(${S.cols}, var(--card-size, ${cardSize}px))`;
+});
 </script>
 </body>
 </html>
