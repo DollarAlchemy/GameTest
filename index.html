@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Grimoire — Fantasy Memory</title>
+<link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════
+   CSS VARIABLES & RESET
+═══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --gold:        #c9a84c;
+  --gold-bright: #f0d070;
+  --gold-dim:    #6a5020;
+  --bg-deep:     #07050f;
+  --bg-mid:      #0e0a1e;
+  --bg-card:     #13102a;
+  --bg-card-rev: #1a1535;
+  --text:        #e8ddb5;
+  --text-dim:    #7a6a40;
+  --glow-gold:   rgba(200, 160, 60, 0.5);
+  --glow-match:  rgba(80, 220, 120, 0.6);
+  --danger:      #c43e3e;
+  --success:     #3ec45a;
+  --ui-font:     'MedievalSharp', serif;
+  --body-font:   'Crimson Pro', Georgia, serif;
+}
+
+html, body {
+  width: 100%; min-height: 100%;
+  background: var(--bg-deep);
+  color: var(--text);
+  font-family: var(--body-font);
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 30%, rgba(60,30,120,0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 35% at 80% 70%, rgba(30,60,140,0.14) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 50% 10%, rgba(100,60,20,0.10) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Floating orbs */
+.orb {
+  position: fixed; border-radius: 50%;
+  pointer-events: none; z-index: 0;
+  animation: drift linear infinite; opacity: 0;
+}
+@keyframes drift {
+  0%   { opacity: 0;   transform: translateY(100vh) scale(0.5); }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.4; }
+  100% { opacity: 0;   transform: translateY(-20vh) scale(1.2); }
+}
+
+/* ═══════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════ */
+#app {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 28px 16px 48px;
+}
+
+/* ═══════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════ */
+header { text-align: center; margin-bottom: 18px; }
+
+.title-rune {
+  font-size: 10px; letter-spacing: 0.4em;
+  color: var(--text-dim); font-family: var(--ui-font);
+  text-transform: uppercase; margin-bottom: 6px;
+}
+
+h1 {
+  font-family: var(--ui-font);
+  font-size: clamp(2.2rem, 7vw, 4rem);
+  color: var(--gold-bright);
+  letter-spacing: 0.07em; line-height: 1;
+  text-shadow: 0 0 22px rgba(200,160,60,0.6), 0 0 60px rgba(200,160,60,0.18);
+  margin-bottom: 5px;
+}
+
+.subtitle {
+  font-size: 14px; color: var(--text-dim);
+  font-style: italic; letter-spacing: 0.04em;
+}
+
+.divider {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; max-width: 520px;
+  margin: 16px auto;
+}
+.divider-line {
+  flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+}
+.divider-gem {
+  width: 8px; height: 8px;
+  background: var(--gold); transform: rotate(45deg);
+  box-shadow: 0 0 6px var(--glow-gold);
+}
+
+/* ═══════════════════════════════════════════
+   HUD
+═══════════════════════════════════════════ */
+#hud {
+  display: flex; gap: 12px;
+  align-items: center; justify-content: center;
+  flex-wrap: wrap; margin-bottom: 22px;
+}
+
+.stat-box {
+  background: rgba(14,10,30,0.85);
+  border: 1px solid var(--gold-dim);
+  border-radius: 6px; padding: 7px 16px;
+  text-align: center; min-width: 82px;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.4);
+}
+.stat-label {
+  font-family: var(--ui-font); font-size: 7.5px;
+  letter-spacing: 0.15em; color: var(--text-dim);
+  text-transform: uppercase; display: block; margin-bottom: 2px;
+}
+.stat-value {
+  font-family: var(--ui-font); font-size: 20px;
+  color: var(--gold-bright); line-height: 1;
+  text-shadow: 0 0 10px rgba(200,160,60,0.5);
+}
+#timerBox .stat-value { color: #88ccff; text-shadow: 0 0 10px rgba(100,160,255,0.5); }
+#matchBox .stat-value { color: var(--success); text-shadow: 0 0 10px rgba(60,200,90,0.4); }
+
+#diffWrap { display: flex; gap: 5px; align-items: center; }
+.diff-btn {
+  background: rgba(14,10,30,0.85);
+  border: 1px solid var(--gold-dim); border-radius: 5px;
+  color: var(--text-dim); font-family: var(--ui-font);
+  font-size: 9.5px; letter-spacing: 0.07em;
+  padding: 6px 11px; cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.diff-btn:hover, .diff-btn.active {
+  border-color: var(--gold); color: var(--gold-bright);
+  box-shadow: 0 0 8px var(--glow-gold);
+}
+
+/* ═══════════════════════════════════════════
+   CARD GRID
+═══════════════════════════════════════════ */
+#grid {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 24px;
+  justify-content: center;
+}
+
+/* ── Single Card ── */
+.card {
+  width: 78px; height: 98px;
+  cursor: pointer; perspective: 700px;
+}
+@media (max-width: 520px) {
+  .card { width: 60px; height: 78px; }
+  #grid  { gap: 6px; }
+}
+@media (max-width: 380px) {
+  .card { width: 50px; height: 65px; }
+}
+
+.card-inner {
+  width: 100%; height: 100%;
+  position: relative; transform-style: preserve-3d;
+  transition: transform 0.42s cubic-bezier(0.4,0.2,0.2,1);
+}
+
+.card.flipped .card-inner,
+.card.matched .card-inner { transform: rotateY(180deg); }
+
+.card-face {
+  position: absolute; inset: 0; backface-visibility: hidden;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--gold-dim);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* ── Back face ── */
+.card-back {
+  background: var(--bg-card);
+  background-image:
+    repeating-linear-gradient(45deg,  rgba(200,160,60,0.035) 0px, rgba(200,160,60,0.035) 1px, transparent 1px, transparent 9px),
+    repeating-linear-gradient(-45deg, rgba(200,160,60,0.035) 0px, rgba(200,160,60,0.035) 1px, transparent 1px, transparent 9px);
+}
+.card-back::before {
+  content: '';
+  position: absolute; inset: 4px;
+  border: 1px solid rgba(200,160,60,0.13); border-radius: 5px;
+}
+.card-back::after {
+  content: '✦';
+  font-size: 26px; color: var(--gold-dim);
+  text-shadow: 0 0 8px rgba(200,160,60,0.25);
+  transition: text-shadow 0.2s, color 0.2s;
+}
+.card:hover:not(.matched) .card-back::after {
+  color: var(--gold);
+  text-shadow: 0 0 16px rgba(200,160,60,0.8);
+}
+.card:hover:not(.matched) .card-face {
+  border-color: var(--gold);
+  box-shadow: 0 0 14px var(--glow-gold), inset 0 0 8px rgba(200,160,60,0.07);
+}
+
+/* ── Front face ── */
+.card-front {
+  background: var(--bg-card-rev);
+  transform: rotateY(180deg);
+  flex-direction: column; gap: 3px;
+  font-size: 34px;
+}
+@media (max-width: 520px) { .card-front { font-size: 26px; } }
+@media (max-width: 380px) { .card-front { font-size: 22px; } }
+
+.card-label {
+  font-family: var(--ui-font); font-size: 6.5px;
+  letter-spacing: 0.04em; color: var(--text-dim);
+  text-align: center; padding: 0 3px; line-height: 1.1;
+}
+
+/* ── Matched ── */
+.card.matched .card-front {
+  border-color: var(--success);
+  box-shadow: 0 0 18px var(--glow-match), inset 0 0 10px rgba(60,200,90,0.08);
+  animation: matchPulse 0.5s ease;
+}
+@keyframes matchPulse {
+  0%   { box-shadow: 0 0 0px  var(--glow-match); }
+  50%  { box-shadow: 0 0 30px var(--glow-match); }
+  100% { box-shadow: 0 0 18px var(--glow-match); }
+}
+
+/* ── Wrong flash ── */
+.card.wrong .card-front {
+  border-color: var(--danger);
+  box-shadow: 0 0 16px rgba(196,62,62,0.65);
+  animation: wrongShake 0.38s ease;
+}
+@keyframes wrongShake {
+  0%,100% { transform: rotateY(180deg) translateX(0); }
+  25%     { transform: rotateY(180deg) translateX(-5px); }
+  75%     { transform: rotateY(180deg) translateX(5px); }
+}
+
+/* ═══════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════ */
+.btn {
+  font-family: var(--ui-font); font-size: 12px;
+  letter-spacing: 0.1em; padding: 11px 28px;
+  background: rgba(14,10,30,0.9);
+  border: 1px solid var(--gold); color: var(--gold-bright);
+  border-radius: 6px; cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  text-shadow: 0 0 8px rgba(200,160,60,0.4);
+}
+.btn:hover { background: rgba(30,20,60,0.95); box-shadow: 0 0 20px var(--glow-gold); }
+.btn:active { transform: scale(0.96); }
+
+/* ═══════════════════════════════════════════
+   OVERLAY (win / lose)
+═══════════════════════════════════════════ */
+#overlay {
+  display: none; position: fixed; inset: 0; z-index: 50;
+  background: rgba(7,5,15,0.88); backdrop-filter: blur(7px);
+  align-items: center; justify-content: center;
+  flex-direction: column; text-align: center; gap: 16px; padding: 24px;
+}
+#overlay.show { display: flex; animation: overlayIn 0.35s ease; }
+@keyframes overlayIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+#overlayIcon { font-size: 68px; animation: iconBounce 0.55s ease 0.15s both; }
+@keyframes iconBounce {
+  0%   { transform: scale(0)    rotate(-15deg); }
+  65%  { transform: scale(1.12) rotate(4deg); }
+  100% { transform: scale(1)    rotate(0deg); }
+}
+
+#overlayTitle {
+  font-family: var(--ui-font);
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  color: var(--gold-bright);
+  text-shadow: 0 0 28px var(--glow-gold);
+}
+
+#overlayMsg {
+  font-size: 15px; color: var(--text-dim);
+  font-style: italic; max-width: 340px; line-height: 1.55;
+}
+
+#overlayStats { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+
+.ostat {
+  background: rgba(14,10,30,0.8);
+  border: 1px solid var(--gold-dim);
+  border-radius: 6px; padding: 7px 16px; text-align: center;
+}
+.ostat-label { font-family: var(--ui-font); font-size: 7.5px; color: var(--text-dim); letter-spacing: 0.1em; display: block; }
+.ostat-val   { font-family: var(--ui-font); font-size: 20px; color: var(--gold-bright); }
+
+#stars { font-size: 34px; letter-spacing: 5px; }
+
+/* ═══════════════════════════════════════════
+   HINT
+═══════════════════════════════════════════ */
+#hint {
+  font-size: 11px; color: var(--text-dim);
+  font-style: italic; text-align: center; opacity: 0.6;
+}
+</style>
+</head>
+<body>
+
+<div id="orbContainer"></div>
+
+<!-- Win / Lose Overlay -->
+<div id="overlay">
+  <div id="overlayIcon">🏆</div>
+  <div id="overlayTitle">Victory!</div>
+  <div id="overlayMsg">The ancient grimoire yields its secrets to you.</div>
+  <div id="stars">⭐⭐⭐</div>
+  <div id="overlayStats">
+    <div class="ostat"><span class="ostat-label">Moves</span><span class="ostat-val" id="oMoves">–</span></div>
+    <div class="ostat"><span class="ostat-label">Time</span><span class="ostat-val"  id="oTime">–</span></div>
+    <div class="ostat"><span class="ostat-label">Score</span><span class="ostat-val" id="oScore">–</span></div>
+  </div>
+  <button class="btn" id="overlayBtn">✦ Play Again ✦</button>
+</div>
+
+<!-- Main App -->
+<div id="app">
+
+  <header>
+    <div class="title-rune">✦ &nbsp; The Ancient &nbsp; ✦</div>
+    <h1>Grimoire</h1>
+    <div class="subtitle">Match the runes — awaken the magic</div>
+  </header>
+
+  <div class="divider">
+    <div class="divider-line"></div><div class="divider-gem"></div><div class="divider-line"></div>
+  </div>
+
+  <div id="hud">
+    <div id="diffWrap">
+      <button class="diff-btn active" data-diff="easy">Novice</button>
+      <button class="diff-btn"        data-diff="medium">Adept</button>
+      <button class="diff-btn"        data-diff="hard">Archmage</button>
+    </div>
+    <div class="stat-box" id="movesBox">
+      <span class="stat-label">Moves</span>
+      <span class="stat-value" id="movesVal">0</span>
+    </div>
+    <div class="stat-box" id="timerBox">
+      <span class="stat-label">Time</span>
+      <span class="stat-value" id="timerVal">0:00</span>
+    </div>
+    <div class="stat-box" id="matchBox">
+      <span class="stat-label">Matched</span>
+      <span class="stat-value" id="matchVal">0/0</span>
+    </div>
+    <button class="btn" id="resetBtn" style="padding:7px 18px;font-size:10px;">⟳ New Game</button>
+  </div>
+
+  <div id="grid"></div>
+
+  <div class="divider">
+    <div class="divider-line"></div><div class="divider-gem"></div><div class="divider-line"></div>
+  </div>
+
+  <p id="hint">Click two cards to reveal them — find all matching pairs to win</p>
+
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════
+   GRIMOIRE — Fantasy Card Matching Game
+   Single file · No dependencies · GitHub Pages ready
+════════════════════════════════════════════════════════ */
+
+// ── All available fantasy cards ──
+const ALL_CARDS = [
+  { emoji: '🐉', label: 'Dragon'    },
+  { emoji: '🧙', label: 'Wizard'    },
+  { emoji: '⚔️',  label: 'Blade'     },
+  { emoji: '🛡️',  label: 'Shield'    },
+  { emoji: '🔮',  label: 'Orb'       },
+  { emoji: '💀',  label: 'Skull'     },
+  { emoji: '🗡️',  label: 'Dagger'    },
+  { emoji: '🏹',  label: 'Bow'       },
+  { emoji: '🦄',  label: 'Unicorn'   },
+  { emoji: '🧝',  label: 'Elf'       },
+  { emoji: '🌙',  label: 'Moon'      },
+  { emoji: '⚡',  label: 'Lightning' },
+  { emoji: '🔥',  label: 'Fire'      },
+  { emoji: '❄️',  label: 'Ice'       },
+  { emoji: '🌿',  label: 'Nature'    },
+  { emoji: '💎',  label: 'Gem'       },
+  { emoji: '🦅',  label: 'Eagle'     },
+  { emoji: '🗝️',  label: 'Key'       },
+  { emoji: '📜',  label: 'Scroll'    },
+  { emoji: '🌟',  label: 'Star'      },
+];
+
+// Difficulty: pairs to match, grid columns, optional time limit
+const DIFFS = {
+  easy:   { pairs: 6,  cols: 4, timeLimit: 0   },
+  medium: { pairs: 10, cols: 5, timeLimit: 90  },
+  hard:   { pairs: 16, cols: 8, timeLimit: 120 },
+};
+
+// ── State ──
+const S = {
+  diff: 'easy',
+  cards: [], flipped: [],
+  moves: 0, matches: 0, totalPairs: 0,
+  locked: false, started: false,
+  elapsed: 0, timerId: null,
+};
+
+// ── DOM ──
+const gridEl   = document.getElementById('grid');
+const movesVal = document.getElementById('movesVal');
+const timerVal = document.getElementById('timerVal');
+const matchVal = document.getElementById('matchVal');
+const overlay  = document.getElementById('overlay');
+
+/* ──────────────────────────────
+   Shuffle (Fisher-Yates)
+────────────────────────────── */
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ──────────────────────────────
+   Build / reset a game
+────────────────────────────── */
+function buildGame() {
+  const cfg = DIFFS[S.diff];
+  clearInterval(S.timerId);
+  Object.assign(S, {
+    cards: [], flipped: [], moves: 0, matches: 0,
+    totalPairs: cfg.pairs, locked: false,
+    started: false, elapsed: 0, timerId: null,
+  });
+
+  // Pick pairs and duplicate them
+  const picked = shuffle(ALL_CARDS).slice(0, cfg.pairs);
+  S.cards = shuffle([...picked, ...picked].map((c, i) => ({
+    ...c, id: i, matched: false, flipped: false,
+  })));
+
+  gridEl.style.gridTemplateColumns = `repeat(${cfg.cols}, auto)`;
+  renderGrid();
+  updateHUD();
+}
+
+/* ──────────────────────────────
+   Render the card grid
+────────────────────────────── */
+function renderGrid() {
+  gridEl.innerHTML = '';
+  S.cards.forEach((card, idx) => {
+    const el = document.createElement('div');
+    el.className = 'card' +
+      (card.flipped ? ' flipped' : '') +
+      (card.matched ? ' matched' : '');
+    el.dataset.idx = idx;
+    el.innerHTML = `
+      <div class="card-inner">
+        <div class="card-face card-back"></div>
+        <div class="card-face card-front">
+          <span>${card.emoji}</span>
+          <span class="card-label">${card.label}</span>
+        </div>
+      </div>`;
+    el.addEventListener('click', () => onFlip(idx));
+    gridEl.appendChild(el);
+  });
+}
+
+function cardEl(idx) {
+  return gridEl.querySelector(`[data-idx="${idx}"]`);
+}
+
+/* ──────────────────────────────
+   Card click handler
+────────────────────────────── */
+function onFlip(idx) {
+  const card = S.cards[idx];
+  if (S.locked || card.matched || S.flipped.includes(idx) || S.flipped.length >= 2) return;
+
+  // Start timer on first flip
+  if (!S.started) startTimer();
+
+  // Flip card face-up
+  card.flipped = true;
+  S.flipped.push(idx);
+  cardEl(idx).classList.add('flipped');
+
+  if (S.flipped.length === 2) {
+    S.moves++;
+    updateHUD();
+    S.locked = true;
+
+    const [a, b] = S.flipped;
+    const match  = S.cards[a].emoji === S.cards[b].emoji;
+
+    if (match) {
+      // ── Match found ──
+      setTimeout(() => {
+        S.cards[a].matched = S.cards[b].matched = true;
+        cardEl(a).classList.add('matched');
+        cardEl(b).classList.add('matched');
+        S.matches++;
+        S.flipped = [];
+        S.locked  = false;
+        updateHUD();
+        if (S.matches === S.totalPairs) endGame(true);
+      }, 280);
+    } else {
+      // ── No match — shake and flip back ──
+      cardEl(a).classList.add('wrong');
+      cardEl(b).classList.add('wrong');
+      setTimeout(() => {
+        S.cards[a].flipped = S.cards[b].flipped = false;
+        cardEl(a).classList.remove('flipped', 'wrong');
+        cardEl(b).classList.remove('flipped', 'wrong');
+        S.flipped = [];
+        S.locked  = false;
+      }, 880);
+    }
+  }
+}
+
+/* ──────────────────────────────
+   Timer
+────────────────────────────── */
+function startTimer() {
+  S.started = true;
+  S.timerId = setInterval(() => {
+    S.elapsed++;
+    const limit = DIFFS[S.diff].timeLimit;
+    if (limit > 0 && S.elapsed >= limit) {
+      clearInterval(S.timerId);
+      endGame(false);
+      return;
+    }
+    updateHUD();
+  }, 1000);
+}
+
+function fmt(s) {
+  return `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
+}
+
+/* ──────────────────────────────
+   HUD update
+────────────────────────────── */
+function updateHUD() {
+  movesVal.textContent = S.moves;
+  matchVal.textContent = `${S.matches}/${S.totalPairs}`;
+  const limit = DIFFS[S.diff].timeLimit;
+  if (limit > 0) {
+    const rem = Math.max(0, limit - S.elapsed);
+    timerVal.textContent = fmt(rem);
+    timerVal.style.color = rem < 20 ? '#ff6666' : '#88ccff';
+  } else {
+    timerVal.textContent = fmt(S.elapsed);
+    timerVal.style.color = '#88ccff';
+  }
+}
+
+/* ──────────────────────────────
+   End Game
+────────────────────────────── */
+function endGame(won) {
+  clearInterval(S.timerId);
+
+  const efficiency = S.moves > 0 ? S.totalPairs / S.moves : 0;
+  const timeBonus  = DIFFS[S.diff].timeLimit > 0
+    ? Math.max(0, DIFFS[S.diff].timeLimit - S.elapsed) * 2
+    : Math.max(0, 240 - S.elapsed);
+  const score = Math.max(0, S.totalPairs * 100 - Math.max(0, S.moves - S.totalPairs) * 6 + timeBonus);
+  const stars  = efficiency >= 0.85 ? '⭐⭐⭐' : efficiency >= 0.6 ? '⭐⭐' : '⭐';
+
+  document.getElementById('overlayIcon').textContent  = won ? (efficiency >= 0.85 ? '🏆' : '🎉') : '💀';
+  document.getElementById('overlayTitle').textContent = won ? 'Victory!' : 'Defeated!';
+  document.getElementById('overlayMsg').textContent   = won
+    ? (efficiency >= 0.85 ? 'Flawless mastery! The grimoire bows to your perfect memory.' : 'The ancient runes are revealed. The magic is yours.')
+    : 'The sands of time ran dry before the grimoire could be unsealed.';
+
+  const starsEl = document.getElementById('stars');
+  starsEl.textContent    = stars;
+  starsEl.style.display  = won ? '' : 'none';
+
+  document.getElementById('oMoves').textContent = S.moves;
+  document.getElementById('oTime').textContent  = fmt(S.elapsed);
+  document.getElementById('oScore').textContent = score.toLocaleString();
+
+  overlay.classList.add('show');
+}
+
+/* ──────────────────────────────
+   New Game
+────────────────────────────── */
+function newGame() {
+  overlay.classList.remove('show');
+  buildGame();
+}
+
+/* ──────────────────────────────
+   Difficulty buttons
+────────────────────────────── */
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    S.diff = btn.dataset.diff;
+    newGame();
+  });
+});
+document.getElementById('overlayBtn').addEventListener('click', newGame);
+document.getElementById('resetBtn').addEventListener('click', newGame);
+
+/* ──────────────────────────────
+   Floating background orbs
+────────────────────────────── */
+(function spawnOrbs() {
+  const container = document.getElementById('orbContainer');
+  const colors = [
+    'rgba(100,60,200,0.22)','rgba(60,100,200,0.18)',
+    'rgba(200,140,40,0.14)','rgba(60,180,120,0.11)',
+  ];
+  for (let i = 0; i < 14; i++) {
+    const orb  = document.createElement('div');
+    orb.className = 'orb';
+    const size = 6 + Math.random() * 14;
+    orb.style.cssText = `
+      width:${size}px; height:${size}px;
+      left:${Math.random()*100}vw;
+      background: radial-gradient(circle, ${colors[i%colors.length]}, transparent);
+      filter: blur(${2+Math.random()*4}px);
+      animation-duration:${12+Math.random()*18}s;
+      animation-delay:${-Math.random()*20}s;`;
+    container.appendChild(orb);
+  }
+})();
+
+// ── Boot ──
+buildGame();
+</script>
+</body>
+</html>
