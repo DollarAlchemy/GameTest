@@ -1,48 +1,25 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <meta name="mobile-web-app-capable" content="yes"/>
-<meta name="apple-web-app-capable" content="yes"/>
-<meta name="apple-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <title>Grimoire — Fantasy Memory</title>
 <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
 <style>
-/* ═══════════════════════════════════════════
-   CSS VARIABLES & RESET
-═══════════════════════════════════════════ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --gold:         #c9a84c;
-  --gold-bright:  #f0d070;
-  --gold-dim:     #6a5020;
-  --bg-deep:      #07050f;
-  --bg-mid:       #0e0a1e;
-  --bg-card:      #13102a;
-  --bg-card-rev:  #1a1535;
-  --text:         #e8ddb5;
-  --text-dim:     #7a6a40;
-  --glow-gold:    rgba(200, 160, 60, 0.5);
-  --glow-match:   rgba(80, 220, 120, 0.6);
-  --danger:       #c43e3e;
-  --success:      #3ec45a;
-  --ui-font:      'MedievalSharp', serif;
-  --body-font:    'Crimson Pro', Georgia, serif;
-}
-
-html, body {
-  width: 100%; min-height: 100%;
-  background: var(--bg-deep);
+@@ -35,6 +38,18 @@
   color: var(--text);
   font-family: var(--body-font);
   overflow-x: hidden;
+  /* Prevent iOS rubber-band scroll fighting the game */
   -webkit-overflow-scrolling: touch;
+  /* Prevent text selection on rapid taps */
   -webkit-user-select: none;
   user-select: none;
 }
 
+/* Make all tappable things feel instant on mobile — no 300ms delay */
 button, .card, .diff-btn, .btn {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -50,72 +27,12 @@ button, .card, .diff-btn, .btn {
 }
 
 body::before {
-  content: '';
-  position: fixed; inset: 0; z-index: 0;
-  background:
-    radial-gradient(ellipse 60% 40% at 20% 30%, rgba(60,30,120,0.18) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 35% at 80% 70%, rgba(30,60,140,0.14) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 30% at 50% 10%, rgba(100,60,20,0.10) 0%, transparent 70%);
-  pointer-events: none;
+@@ -112,19 +127,23 @@
 }
 
-.orb {
-  position: fixed; border-radius: 50%;
-  pointer-events: none; z-index: 0;
-  animation: drift linear infinite; opacity: 0;
-}
-@keyframes drift {
-  0%   { opacity: 0;   transform: translateY(100vh) scale(0.5); }
-  10%  { opacity: 0.6; }
-  90%  { opacity: 0.4; }
-  100% { opacity: 0;   transform: translateY(-20vh) scale(1.2); }
-}
-
-#app {
-  position: relative; z-index: 1;
-  min-height: 100vh;
-  display: flex; flex-direction: column;
-  align-items: center;
-  padding: 28px 16px 48px;
-}
-
-header { text-align: center; margin-bottom: 18px; }
-
-.title-rune {
-  font-size: 10px; letter-spacing: 0.4em;
-  color: var(--text-dim); font-family: var(--ui-font);
-  text-transform: uppercase; margin-bottom: 6px;
-}
-
-h1 {
-  font-family: var(--ui-font);
-  font-size: clamp(2.2rem, 7vw, 4rem);
-  color: var(--gold-bright);
-  letter-spacing: 0.07em; line-height: 1;
-  text-shadow: 0 0 22px rgba(200,160,60,0.6), 0 0 60px rgba(200,160,60,0.18);
-  margin-bottom: 5px;
-}
-
-.subtitle {
-  font-size: 14px; color: var(--text-dim);
-  font-style: italic; letter-spacing: 0.04em;
-}
-
-.divider {
-  display: flex; align-items: center; gap: 12px;
-  width: 100%; max-width: 520px;
-  margin: 16px auto;
-}
-.divider-line {
-  flex: 1; height: 1px;
-  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
-}
-.divider-gem {
-  width: 8px; height: 8px;
-  background: var(--gold); transform: rotate(45deg);
-  box-shadow: 0 0 6px var(--glow-gold);
-}
-
+/* ═══════════════════════════════════════════
+   HUD — stacks cleanly on narrow phones
+═══════════════════════════════════════════ */
 #hud {
   display: flex; gap: 8px;
   align-items: center; justify-content: center;
@@ -127,451 +44,138 @@ h1 {
   background: rgba(14,10,30,0.85);
   border: 1px solid var(--gold-dim);
   border-radius: 6px;
+  /* Shrink gracefully on very small screens */
   padding: clamp(5px, 1.5vw, 7px) clamp(10px, 3vw, 16px);
   text-align: center;
   min-width: clamp(62px, 18vw, 82px);
   box-shadow: inset 0 0 10px rgba(0,0,0,0.4);
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 .stat-label {
-  font-family: var(--ui-font); font-size: 7.5px;
-  letter-spacing: 0.15em; color: var(--text-dim);
-  text-transform: uppercase; display: block; margin-bottom: 2px;
-}
-.stat-value {
-  font-family: var(--ui-font); font-size: 20px;
-  color: var(--gold-bright); line-height: 1;
-  text-shadow: 0 0 10px rgba(200,160,60,0.5);
+@@ -155,26 +174,27 @@
 }
 
-/* Combo Highlight */
-#comboWrap.active { 
-    border-color: var(--gold); 
-    transform: scale(1.1); 
-    box-shadow: 0 0 15px var(--glow-gold);
-}
-#comboVal { color: #ffcc00; }
-
-#timerBox .stat-value { color: #88ccff; text-shadow: 0 0 10px rgba(100,160,255,0.5); }
-#matchBox .stat-value { color: var(--success); text-shadow: 0 0 10px rgba(60,200,90,0.4); }
-
-#diffWrap { display: flex; gap: 5px; align-items: center; }
-.diff-btn {
-  background: rgba(14,10,30,0.85);
-  border: 1px solid var(--gold-dim); border-radius: 5px;
-  color: var(--text-dim); font-family: var(--ui-font);
-  font-size: 9.5px; letter-spacing: 0.07em;
-  padding: 6px 11px;
-}
-.diff-btn:hover, .diff-btn.active {
-  border-color: var(--gold); color: var(--gold-bright);
-  box-shadow: 0 0 8px var(--glow-gold);
-}
-
+/* ═══════════════════════════════════════════
+   CARD GRID — fully fluid for all screen sizes
+═══════════════════════════════════════════ */
 #grid {
   display: grid;
   gap: clamp(5px, 1.8vw, 10px);
   margin-bottom: 24px;
   justify-content: center;
+  /* padding keeps grid from hitting screen edges on phones */
   padding: 0 8px;
   width: 100%;
 }
 
+/* ── Single Card — fluid size ──
+   --card-size is set by JS based on cols + screen width.
+   Fallback is 78px for desktop. */
 .card {
   width:  var(--card-size, 78px);
   height: calc(var(--card-size, 78px) * 1.28);
   perspective: 700px;
+  /* No hover cursor on touch devices */
+  cursor: pointer;
+
+
+
+
 }
 
 .card-inner {
-  width: 100%; height: 100%;
-  position: relative; transform-style: preserve-3d;
-  transition: transform 0.42s cubic-bezier(0.4,0.2,0.2,1);
-}
-
-.card.flipped .card-inner,
-.card.matched .card-inner { transform: rotateY(180deg); }
-
-.card-face {
-  position: absolute; inset: 0; backface-visibility: hidden;
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  border: 1px solid var(--gold-dim);
-}
-
-.card-back {
-  background: var(--bg-card);
-  background-image:
-    repeating-linear-gradient(45deg,  rgba(200,160,60,0.035) 0px, rgba(200,160,60,0.035) 1px, transparent 1px, transparent 9px);
-}
-.card-back::after {
-  content: '✦'; font-size: 26px; color: var(--gold-dim);
-}
-
-.card-front {
+@@ -226,10 +246,9 @@
   background: var(--bg-card-rev);
   transform: rotateY(180deg);
   flex-direction: column; gap: 3px;
+  /* Emoji scales with card — clamp keeps it readable on tiny/huge screens */
   font-size: clamp(18px, calc(var(--card-size, 78px) * 0.44), 38px);
 }
 
-.card-label { font-family: var(--ui-font); font-size: 6.5px; color: var(--text-dim); text-transform: uppercase; }
 
-.card.matched .card-front {
-  border-color: var(--success);
-  box-shadow: 0 0 18px var(--glow-match);
-  animation: matchPulse 0.5s ease;
-}
 
-.card.wrong .card-front {
-  border-color: var(--danger);
-  animation: wrongShake 0.38s ease;
-}
-
-@keyframes matchPulse {
-  50% { transform: rotateY(180deg) scale(1.05); }
-}
-@keyframes wrongShake {
-  0%,100% { transform: rotateY(180deg) translateX(0); }
-  25%     { transform: rotateY(180deg) translateX(-5px); }
-  75%     { transform: rotateY(180deg) translateX(5px); }
-}
-
-.btn {
-  font-family: var(--ui-font); font-size: 12px;
-  padding: 11px 28px;
-  background: rgba(14,10,30,0.9);
-  border: 1px solid var(--gold); color: var(--gold-bright);
-  border-radius: 6px;
-}
-
-#overlay {
-  display: none; position: fixed; inset: 0; z-index: 50;
-  background: rgba(7,5,15,0.92); backdrop-filter: blur(7px);
-  align-items: center; justify-content: center;
-  flex-direction: column; text-align: center; gap: 16px; padding: 24px;
-}
-#overlay.show { display: flex; }
-
-#hint { font-size: 11px; color: var(--text-dim); font-style: italic; }
-</style>
-</head>
-<body>
-
-<div id="orbContainer"></div>
-
-<div id="overlay">
-  <div id="overlayIcon">🏆</div>
-  <div id="overlayTitle">Victory!</div>
-  <div id="overlayMsg">The grimoire is unsealed.</div>
-  <div id="stars">⭐⭐⭐</div>
-  <div id="overlayStats">
-    <div class="ostat"><span class="ostat-label">Moves</span><span class="ostat-val" id="oMoves">–</span></div>
-    <div class="ostat"><span class="ostat-label">Time</span><span class="ostat-val"  id="oTime">–</span></div>
-    <div class="ostat"><span class="ostat-label">Score</span><span class="ostat-val" id="oScore">–</span></div>
-  </div>
-  <button class="btn" id="overlayBtn">✦ Play Again ✦</button>
-</div>
-
-<div id="app">
-  <header>
-    <div class="title-rune">✦ &nbsp; The Ancient &nbsp; ✦</div>
-    <h1>Grimoire</h1>
-    <div class="subtitle">Match the runes — awaken the magic</div>
-  </header>
-
-  <div class="divider">
-    <div class="divider-line"></div><div class="divider-gem"></div><div class="divider-line"></div>
-  </div>
-
-  <div id="hud">
-    <div id="diffWrap">
-      <button class="diff-btn active" data-diff="easy">Novice</button>
-      <button class="diff-btn"        data-diff="medium">Adept</button>
-      <button class="diff-btn"        data-diff="hard">Archmage</button>
-    </div>
-    <div class="stat-box" id="movesBox">
-      <span class="stat-label">Moves</span>
-      <span class="stat-value" id="movesVal">0</span>
-    </div>
-    <div class="stat-box" id="comboWrap">
-      <span class="stat-label">Combo</span>
-      <span class="stat-value" id="comboVal">x1</span>
-    </div>
-    <div class="stat-box" id="timerBox">
-      <span class="stat-label">Time</span>
-      <span class="stat-value" id="timerVal">0:00</span>
-    </div>
-    <div class="stat-box" id="matchBox">
-      <span class="stat-label">Matched</span>
-      <span class="stat-value" id="matchVal">0/0</span>
-    </div>
-    <button class="btn" id="resetBtn" style="padding:7px 18px;font-size:10px;">⟳ New Game</button>
-  </div>
-
-  <div id="grid"></div>
-
-  <p id="hint">Watch carefully! Memorize the locations before they vanish...</p>
-</div>
-
-<script>
-/* ════════════════════════════════════════════════════════
-   GRIMOIRE — Fantasy Memory Logic
-════════════════════════════════════════════════════════ */
-
-const ALL_CARDS = [
-  { emoji: '🐉', label: 'Dragon' }, { emoji: '🧙', label: 'Wizard' },
-  { emoji: '⚔️', label: 'Blade' }, { emoji: '🛡️', label: 'Shield' },
-  { emoji: '🔮', label: 'Orb' }, { emoji: '💀', label: 'Skull' },
-  { emoji: '🗡️', label: 'Dagger' }, { emoji: '🏹', label: 'Bow' },
-  { emoji: '🦄', label: 'Unicorn' }, { emoji: '🧝', label: 'Elf' },
-  { emoji: '🌙', label: 'Moon' }, { emoji: '⚡', label: 'Bolt' },
-  { emoji: '🔥', label: 'Fire' }, { emoji: '❄️', label: 'Ice' },
-  { emoji: '🌿', label: 'Nature' }, { emoji: '💎', label: 'Gem' }
-];
-
-const DIFFS = {
-  easy:   { pairs: 6,  cols: 4, timeLimit: 0,   preview: 1500 },
-  medium: { pairs: 10, cols: 5, timeLimit: 90,  preview: 2500 },
-  hard:   { pairs: 16, cols: 8, timeLimit: 120, preview: 4000 },
-};
-
-// ── Audio Engine (Web Audio API) ──
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let audioCtx = null;
-
-function playSfx(type, combo = 1) {
-  if (!audioCtx) audioCtx = new AudioCtx();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  const now = audioCtx.currentTime;
-
-  if (type === 'flip') {
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(200, now);
-    osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
-    gain.gain.setValueAtTime(0.1, now);
-    gain.gain.linearRampToValueAtTime(0, now + 0.1);
-    osc.start(); osc.stop(now + 0.1);
-  } else if (type === 'match') {
-    osc.type = 'triangle';
-    const freq = 400 + (combo * 50); 
-    osc.frequency.setValueAtTime(freq, now);
-    osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + 0.4);
-    gain.gain.setValueAtTime(0.1, now);
-    gain.gain.linearRampToValueAtTime(0, now + 0.4);
-    osc.start(); osc.stop(now + 0.4);
-  } else if (type === 'fail') {
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(120, now);
-    osc.frequency.linearRampToValueAtTime(60, now + 0.3);
-    gain.gain.setValueAtTime(0.05, now);
-    gain.gain.linearRampToValueAtTime(0, now + 0.3);
-    osc.start(); osc.stop(now + 0.3);
-  }
-}
-
-// ── State ──
-const S = {
-  diff: 'easy',
-  cards: [], flipped: [],
-  moves: 0, matches: 0, combo: 1, lastMatchTime: 0,
-  locked: true, started: false,
-  elapsed: 0, timerId: null,
-};
-
-const gridEl = document.getElementById('grid');
-const movesVal = document.getElementById('movesVal');
-const comboVal = document.getElementById('comboVal');
-const timerVal = document.getElementById('timerVal');
-const matchVal = document.getElementById('matchVal');
-const overlay = document.getElementById('overlay');
-const hintEl = document.getElementById('hint');
-
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
+.card-label {
+  font-family: var(--ui-font); font-size: 6.5px;
+@@ -458,16 +477,36 @@ <h1>Grimoire</h1>
   return a;
 }
 
+/* ──────────────────────────────
+   Calculate fluid card size from cols + screen width
+   Called on build and on window resize
+────────────────────────────── */
 function calcCardSize(cols) {
-  const padding = 40;
-  const gap = 10;
-  return Math.max(45, Math.min(80, (window.innerWidth - padding - (gap * cols)) / cols));
+  const gap     = Math.max(5, Math.min(10, window.innerWidth * 0.018));
+  const padding = 32; // total side padding
+  const maxSize = 78; // desktop cap
+  const size    = Math.min(maxSize, Math.floor((window.innerWidth - padding - gap * (cols - 1)) / cols));
+  // Minimum tap target: 44px (Apple HIG recommendation)
+  return Math.max(44, size);
 }
 
+/* ──────────────────────────────
+   Build / reset a game
+────────────────────────────── */
 function buildGame() {
+  const isMobile = window.innerWidth < 600;
   const cfg = DIFFS[S.diff];
+
+  // On mobile, cap columns so cards stay tappable
   let cols = cfg.cols;
-  if (window.innerWidth < 600 && cols > 4) cols = 4;
+  if (isMobile && cols > 4) cols = 4;
 
   clearInterval(S.timerId);
   Object.assign(S, {
-    cards: [], flipped: [], moves: 0, matches: 0, combo: 1,
-    locked: true, started: false, elapsed: 0, cols
+    cards: [], flipped: [], moves: 0, matches: 0,
+    totalPairs: cfg.pairs, locked: false,
+    started: false, elapsed: 0, timerId: null,
+    cols, // store resolved cols
   });
 
-  const picked = shuffle(ALL_CARDS).slice(0, cfg.pairs);
-  S.cards = shuffle([...picked, ...picked].map((c, i) => ({
-    ...c, id: i, matched: false, flipped: false
+  // Pick pairs and duplicate them
+@@ -476,7 +515,11 @@ <h1>Grimoire</h1>
+    ...c, id: i, matched: false, flipped: false,
   })));
 
-  const size = calcCardSize(cols);
-  gridEl.style.setProperty('--card-size', size + 'px');
-  gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  // Set card size as CSS variable on the grid
+  const cardSize = calcCardSize(cols);
+  gridEl.style.setProperty('--card-size', cardSize + 'px');
+  gridEl.style.gridTemplateColumns = `repeat(${cols}, var(--card-size, ${cardSize}px))`;
 
   renderGrid();
   updateHUD();
-
-  // Start Preview
-  hintEl.textContent = "Focus... the grimoire reveals itself briefly.";
-  setTimeout(() => {
-    document.querySelectorAll('.card').forEach(c => c.classList.add('flipped'));
-    setTimeout(() => {
-      document.querySelectorAll('.card').forEach(c => c.classList.remove('flipped'));
-      S.locked = false;
-      hintEl.textContent = "The cards are hidden. Begin your trial.";
-    }, cfg.preview);
-  }, 500);
 }
-
-function renderGrid() {
-  gridEl.innerHTML = '';
-  S.cards.forEach((card, idx) => {
-    const el = document.createElement('div');
-    el.className = 'card';
-    el.innerHTML = `
-      <div class="card-inner">
-        <div class="card-face card-back"></div>
-        <div class="card-face card-front">
-          <span>${card.emoji}</span>
+@@ -500,7 +543,19 @@ <h1>Grimoire</h1>
           <span class="card-label">${card.label}</span>
         </div>
       </div>`;
-    el.onclick = () => onFlip(idx);
+
+    // Use touchend for iOS (faster, no 300ms delay)
+    // Use click as fallback for desktop
+    let touchMoved = false;
+    el.addEventListener('touchstart', () => { touchMoved = false; }, { passive: true });
+    el.addEventListener('touchmove',  () => { touchMoved = true;  }, { passive: true });
+    el.addEventListener('touchend', (e) => {
+      if (touchMoved) return;       // ignore swipes
+      e.preventDefault();           // prevent ghost click firing after
+      onFlip(idx);
+    });
+    el.addEventListener('click', () => onFlip(idx));
+
     gridEl.appendChild(el);
   });
 }
+@@ -675,6 +730,14 @@ <h1>Grimoire</h1>
 
-function onFlip(idx) {
-  if (S.locked || S.cards[idx].matched || S.flipped.includes(idx)) return;
-
-  if (!S.started) {
-    S.started = true;
-    S.timerId = setInterval(() => {
-      S.elapsed++;
-      updateHUD();
-      const limit = DIFFS[S.diff].timeLimit;
-      if (limit > 0 && S.elapsed >= limit) endGame(false);
-    }, 1000);
-  }
-
-  playSfx('flip');
-  S.flipped.push(idx);
-  gridEl.children[idx].classList.add('flipped');
-
-  if (S.flipped.length === 2) {
-    S.locked = true;
-    S.moves++;
-    const [a, b] = S.flipped;
-    
-    if (S.cards[a].emoji === S.cards[b].emoji) {
-      // MATCH
-      const now = Date.now();
-      if (now - S.lastMatchTime < 3000) S.combo++;
-      else S.combo = 1;
-      S.lastMatchTime = now;
-
-      setTimeout(() => {
-        playSfx('match', S.combo);
-        S.cards[a].matched = S.cards[b].matched = true;
-        gridEl.children[a].classList.add('matched');
-        gridEl.children[b].classList.add('matched');
-        S.matches++;
-        S.flipped = [];
-        S.locked = false;
-        updateHUD();
-        if (S.matches === S.cards.length / 2) endGame(true);
-      }, 400);
-    } else {
-      // FAIL
-      S.combo = 1;
-      gridEl.children[a].classList.add('wrong');
-      gridEl.children[b].classList.add('wrong');
-      setTimeout(() => {
-        playSfx('fail');
-        gridEl.children[a].classList.remove('flipped', 'wrong');
-        gridEl.children[b].classList.remove('flipped', 'wrong');
-        S.flipped = [];
-        S.locked = false;
-        updateHUD();
-      }, 1000);
-    }
-  }
-}
-
-function updateHUD() {
-  movesVal.textContent = S.moves;
-  matchVal.textContent = `${S.matches}/${S.cards.length / 2}`;
-  comboVal.textContent = `x${S.combo}`;
-  document.getElementById('comboWrap').classList.toggle('active', S.combo > 1);
-
-  const limit = DIFFS[S.diff].timeLimit;
-  const timeText = limit > 0 ? fmt(Math.max(0, limit - S.elapsed)) : fmt(S.elapsed);
-  timerVal.textContent = timeText;
-}
-
-function fmt(s) { return `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`; }
-
-function endGame(won) {
-  clearInterval(S.timerId);
-  const score = (S.matches * 100) + (S.combo * 50) - (S.moves * 2);
-  document.getElementById('oMoves').textContent = S.moves;
-  document.getElementById('oTime').textContent = fmt(S.elapsed);
-  document.getElementById('oScore').textContent = Math.max(0, score);
-  document.getElementById('overlayTitle').textContent = won ? "Victory!" : "Time Expired!";
-  overlay.classList.add('show');
-}
-
-// ── Buttons ──
-document.querySelectorAll('.diff-btn').forEach(btn => {
-  btn.onclick = () => {
-    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    S.diff = btn.dataset.diff;
-    buildGame();
-  };
-});
-document.getElementById('resetBtn').onclick = buildGame;
-document.getElementById('overlayBtn').onclick = () => {
-  overlay.classList.remove('show');
-  buildGame();
-};
-
-// ── Orbs ──
-(function spawnOrbs() {
-  const container = document.getElementById('orbContainer');
-  for (let i = 0; i < 15; i++) {
-    const orb = document.createElement('div');
-    orb.className = 'orb';
-    orb.style.cssText = `
-      width:${Math.random()*20+5}px; height:${Math.random()*20+5}px;
-      left:${Math.random()*100}vw; background:rgba(200,150,50,0.1);
-      animation-duration:${Math.random()*10+10}s; animation-delay:-${Math.random()*10}s;
-      filter:blur(5px);
-    `;
-    container.appendChild(orb);
-  }
-})();
-
+// ── Boot ──
 buildGame();
+
+// Recalculate card sizes if phone rotates or window resizes
+window.addEventListener('resize', () => {
+  if (!S.cols) return;
+  const cardSize = calcCardSize(S.cols);
+  gridEl.style.setProperty('--card-size', cardSize + 'px');
+  gridEl.style.gridTemplateColumns = `repeat(${S.cols}, var(--card-size, ${cardSize}px))`;
+});
 </script>
 </body>
 </html>
